@@ -1,0 +1,121 @@
+from emotion_detection import detect_emotion
+from voice_assistant import speak_response, listen_command
+from hologram_display import display_hologram
+import cv2
+import time
+
+def main():
+    print("Sangee AI Agent is starting...")
+    cap = cv2.VideoCapture(0)
+
+    while True:
+        emotion = detect_emotion(cap)
+        if emotion:
+            print(f"Detected emotion: {emotion}")
+            speak_response(emotion)
+            display_hologram(emotion)
+        else:
+            print("No clear emotion detected.")
+        
+        try:
+            command = listen_command()
+            if "stop" in command.lower():
+                print("Shutting down Sangee...")
+                break
+        except:
+            pass
+
+        time.sleep(2)
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
+
+import cv2
+import mediapipe as mp
+import numpy as np
+
+# Load face detection and emotion classification (simplified)
+mp_face = mp.solutions.face_detection
+mp_drawing = mp.solutions.drawing_utils
+
+# Dummy classifier (replace with actual model in future)
+def classify_emotion(face_img):
+    avg_brightness = np.mean(face_img)
+    if avg_brightness > 160:
+        return "Happy"
+    elif avg_brightness > 100:
+        return "Neutral"
+    else:
+        return "Sad"
+
+def detect_emotion(cap):
+    with mp_face.FaceDetection(min_detection_confidence=0.6) as detector:
+        success, frame = cap.read()
+        if not success:
+            return None
+
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = detector.process(frame_rgb)
+
+        if results.detections:
+            for detection in results.detections:
+                bbox = detection.location_data.relative_bounding_box
+                h, w, _ = frame.shape
+                x, y, width, height = int(bbox.xmin * w), int(bbox.ymin * h), int(bbox.width * w), int(bbox.height * h)
+                face_img = frame[y:y+height, x:x+width]
+                if face_img.size != 0:
+                    emotion = classify_emotion(face_img)
+                    return emotion
+        return None
+
+import pyttsx3
+import speech_recognition as sr
+
+engine = pyttsx3.init()
+engine.setProperty('rate', 150)
+
+def speak_response(emotion):
+    responses = {
+        "Happy": "You look happy! That's wonderful!",
+        "Neutral": "Everything seems calm right now.",
+        "Sad": "I'm here for you. You look a bit down."
+    }
+    message = responses.get(emotion, "I'm not sure how you feel.")
+    engine.say(message)
+    engine.runAndWait()
+
+def listen_command():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        audio = recognizer.listen(source, timeout=5)
+    command = recognizer.recognize_google(audio)
+    return command
+import matplotlib.pyplot as plt
+import numpy as np
+
+def display_hologram(emotion):
+    print(f"Displaying hologram for: {emotion}")
+    fig = plt.figure(figsize=(5, 5))
+    ax = fig.add_subplot(111)
+
+    color_map = {
+        "Happy": "yellow",
+        "Neutral": "blue",
+        "Sad": "gray"
+    }
+
+    ax.set_facecolor(color_map.get(emotion, "black"))
+    ax.text(0.5, 0.5, f"{emotion} Mode", fontsize=24, ha='center', va='center', color='white')
+    plt.axis('off')
+    plt.show()
+opencv-python
+numpy
+pyttsx3
+speechrecognition
+pyaudio
+mediapipe
+matplotlib
